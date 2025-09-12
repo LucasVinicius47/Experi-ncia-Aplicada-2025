@@ -11,4 +11,4 @@ Aplicação interativa desenvolvida com Streamlit para visualização de partida
 
 ## Como executar
 ```bash
-streamlit run app.py
+python -m streamlit run app.py 
