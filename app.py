@@ -1,128 +1,160 @@
 import streamlit as st
-from datetime import datetime, timedelta
+import pandas as pd
+from datetime import datetime
+from streamlit_autorefresh import st_autorefresh
+from football_api import (
+    get_leagues,
+    get_fixtures_by_date,
+    get_match_statistics,
+    get_match_lineups,
+    get_standings,
+)
 
 # ========================
-# CONFIGURAÇÃO DO APP
+# Configuração da Página
 # ========================
 st.set_page_config(
-    page_title="⚽ Futebol Análise",
-    page_icon="⚽",
-    layout="wide"
+    page_title="⚽ Dash Gol",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-# ========================
-# HEADER
-# ========================
-st.title("⚽ Análise de Partidas de Futebol")
+st.title("⚽ Dash Gol")
 
-# Seleção de datas
-hoje = datetime.today()
-dias = [(hoje + timedelta(days=i)) for i in range(-3, 4)]
-dias_formatados = {d.strftime("%a %d/%m"): d.date() for d in dias}
-selected_day = st.radio(
-    "Escolha o dia:",
-    options=list(dias_formatados.keys()),
-    horizontal=True
+# ========================
+# Sidebar - Seleções
+# ========================
+st.sidebar.header("📌 Filtros")
+
+# Intervalo de atualização configurável
+refresh_interval = st.sidebar.slider("⏱ Atualizar a cada (segundos)", 15, 120, 30, step=5)
+st_autorefresh(interval=refresh_interval * 1000, key="refresh")
+
+ligas = get_leagues()
+ligas_df = pd.DataFrame(ligas)
+
+if ligas_df.empty:
+    st.sidebar.error("❌ Nenhuma liga encontrada. Verifique sua API Key.")
+    st.stop()
+
+liga_nome = st.sidebar.selectbox("Selecione a Liga", ligas_df["name"])
+liga_id = ligas_df[ligas_df["name"] == liga_nome]["id"].values[0]
+
+data_escolhida = st.sidebar.date_input("Escolha a data", datetime.today())
+temporada = datetime.today().year
+
+# ========================
+# Buscar Partidas
+# ========================
+partidas = get_fixtures_by_date(liga_id, data_escolhida, temporada)
+
+if not partidas:
+    st.warning("⚠ Nenhuma partida encontrada para esta data.")
+    st.stop()
+
+st.sidebar.subheader("📅 Partidas do dia")
+partida_selecionada = st.sidebar.selectbox(
+    "Selecione a partida",
+    [f"{p['teams']['home']['name']} x {p['teams']['away']['name']}" for p in partidas],
 )
-st.write(f"📅 Data selecionada: **{dias_formatados[selected_day]}**")
 
-# Seleção de ligas (exemplo fixo, depois conectamos à API)
-ligas_famosas = [
-    "Premier League",
-    "La Liga",
-    "Serie A",
-    "Bundesliga",
-    "Ligue 1",
-    "Brasileirão Série A",
-    "Champions League"
-]
-selected_league = st.selectbox("Selecione a Liga:", ligas_famosas)
+partida = [
+    p for p in partidas if f"{p['teams']['home']['name']} x {p['teams']['away']['name']}" == partida_selecionada
+][0]
 
-st.markdown("---")
+fixture_id = partida["fixture"]["id"]
+
+# Guardar o time atual em sessão para destacar na tabela
+st.session_state["time_atual"] = partida["teams"]["home"]["name"]
 
 # ========================
-# ÁREA PRINCIPAL COM TABS
+# Exibir Informações da Partida
 # ========================
-tab1, tab2, tab3 = st.tabs(["⚡ Ao Vivo", "📅 Próximos", "✅ Encerrados"])
+st.header(f"🏟 {partida['teams']['home']['name']} x {partida['teams']['away']['name']}")
 
-# ------------------------
-# TAB 1 - AO VIVO
-# ------------------------
-with tab1:
-    st.subheader("Partidas Ao Vivo")
+col1, col2, col3 = st.columns([2, 1, 2])
 
-    # Card da partida
-    col1, col2, col3 = st.columns([3, 1, 3])
-    with col1:
-        st.write("🏟️ Time A")
-        st.metric("Gols", 1)
-        st.progress(0.45)  # posse de bola 45%
-    with col2:
-        st.write("⏱️ 55'")
-        st.metric("Placar", "1 - 0")
-    with col3:
-        st.write("Time B 🏟️")
-        st.metric("Gols", 0)
-        st.progress(0.55)  # posse de bola 55%
+with col1:
+    st.image(partida["teams"]["home"]["logo"], width=100)
+    st.subheader(partida["teams"]["home"]["name"])
 
-    # Estatísticas detalhadas
-    st.markdown("### 📊 Estatísticas da Partida")
-    stats_col1, stats_col2 = st.columns(2)
+with col2:
+    st.markdown(f"### ⏱ {partida['fixture']['status']['long']}")
+    st.markdown(f"## {partida['goals']['home']} - {partida['goals']['away']}")
 
-    with stats_col1:
-        st.write("Finalizações: **10** (Time A) vs 7 (Time B)")
-        st.write("Escanteios: **5** (Time A) vs 2 (Time B)")
-        st.write("Cartões Amarelos: 1 (Time A) vs **3** (Time B)")
-
-    with stats_col2:
-        st.write("Faltas: 12 (Time A) vs **15** (Time B)")
-        st.write("Chutes no alvo: **6** (Time A) vs 3 (Time B)")
-        st.write("Cartões Vermelhos: 0 (Time A) vs **1** (Time B)")
-
-    # Escalações
-    st.markdown("### 📋 Escalações")
-    lineup_tab1, lineup_tab2 = st.tabs(["Time A", "Time B"])
-
-    with lineup_tab1:
-        st.write("Formação: 4-2-3-1")
-        st.write("**Titulares**")
-        st.write("1. David de Gea (G)")
-        st.write("5. Harry Maguire (D)")
-        st.write("8. Bruno Fernandes (M)")
-        st.write("7. Cristiano Ronaldo (F)")
-        st.write("**Banco**")
-        st.write("12. Victor Lindelöf (D)")
-        st.write("14. Jesse Lingard (M)")
-        st.write("Treinador: Erik ten Hag")
-
-    with lineup_tab2:
-        st.write("Formação: 4-3-3")
-        st.write("**Titulares**")
-        st.write("1. Ederson (G)")
-        st.write("4. Rúben Dias (D)")
-        st.write("8. İlkay Gündoğan (M)")
-        st.write("9. Erling Haaland (F)")
-        st.write("**Banco**")
-        st.write("20. Bernardo Silva (M)")
-        st.write("47. Phil Foden (F)")
-        st.write("Treinador: Pep Guardiola")
-
-# ------------------------
-# TAB 2 - PRÓXIMOS
-# ------------------------
-with tab2:
-    st.subheader("Próximas Partidas")
-    st.info("Exemplo: Time X vs Time Y — amanhã às 16:00")
-
-# ------------------------
-# TAB 3 - ENCERRADOS
-# ------------------------
-with tab3:
-    st.subheader("Partidas Encerradas")
-    st.success("Exemplo: Time C 2 - 1 Time D (Final)")
+with col3:
+    st.image(partida["teams"]["away"]["logo"], width=100)
+    st.subheader(partida["teams"]["away"]["name"])
 
 # ========================
-# RODAPÉ
+# Estatísticas da Partida
 # ========================
-st.markdown("---")
-st.caption("📊 Dados fornecidos pela API-Football (versão demonstrativa)")
+st.subheader("📊 Estatísticas da Partida")
+stats = get_match_statistics(fixture_id)
+
+if not stats:
+    st.info("ℹ Estatísticas não disponíveis para esta partida.")
+else:
+    stats_df = pd.DataFrame(stats)
+
+    if not stats_df.empty:
+        st.dataframe(
+            stats_df.style.set_properties(**{'color': 'white'}),
+            use_container_width=True
+        )
+    else:
+        st.info("ℹ Estatísticas ainda não foram carregadas.")
+
+# ========================
+# Escalações
+# ========================
+st.subheader("👕 Escalações")
+lineups = get_match_lineups(fixture_id)
+
+if not lineups:
+    st.info("ℹ Escalações não disponíveis.")
+else:
+    for equipe in lineups:
+        team_name = equipe.get("team", {}).get("name", "N/D")
+        st.markdown(f"### {team_name}")
+
+        titulares = equipe.get("startXI", [])
+        if not titulares:
+            st.write("Nenhum titular disponível.")
+        else:
+            df_titulares = pd.DataFrame([
+                {
+                    "Nº": j["player"]["number"],
+                    "Jogador": j["player"]["name"],
+                    "Posição": j["player"]["pos"]
+                }
+                for j in titulares
+            ])
+            st.dataframe(df_titulares, use_container_width=True)
+
+# ========================
+# Classificação
+# ========================
+st.subheader("🏆 Classificação da Liga")
+
+tabela = get_standings(liga_id, temporada)
+
+if tabela is None or tabela.empty:
+    st.warning("⚠ Nenhuma informação da classificação disponível")
+else:
+    tabela_exibicao = tabela.copy()
+
+    if "time_atual" in st.session_state:
+        time_destacado = st.session_state["time_atual"]
+
+        def highlight_team(row):
+            if row["Time"] == time_destacado:
+                return ['background-color: yellow; color: black; font-weight: bold'] * len(row)
+            return [''] * len(row)
+
+        st.dataframe(
+            tabela_exibicao.style.apply(highlight_team, axis=1),
+            use_container_width=True
+        )
+    else:
+        st.dataframe(tabela_exibicao, use_container_width=True)
