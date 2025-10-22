@@ -3,7 +3,9 @@ import pandas as pd
 from datetime import datetime
 import streamlit as st # <-- Importa o Streamlit para usar o cache
 
-API_KEY = "08fd60ff25a20412131549c50401864f"
+# Atenção: Você deve substituir "08fd60ff25a20412131549c50401864f"
+# pela sua chave de API real se o app não funcionar.
+API_KEY = "08fd60ff25a20412131549c50401864f" 
 BASE_URL = "https://v3.football.api-sports.io"
 HEADERS = {"x-apisports-key": API_KEY}
 
@@ -24,7 +26,8 @@ STATS_TRANSLATE = {
     "Total passes": "Passes Totais",
     "Passes accurate": "Passes Precisos",
     "Passes %": "Precisão dos Passes",
-    "expected_goals": "Gols Esperados (xG)",
+    # Adicionei xG e Gols Evitados, se a API suportar
+    "expected_goals": "Gols Esperados (xG)", 
     "goals_prevented": "Gols Evitados"
 }
 
@@ -100,6 +103,9 @@ def get_match_lineups(fixture_id):
     except requests.exceptions.RequestException:
         return []
 
+# ====================================================================
+# FUNÇÃO ATUALIZADA: Inclui 'Logo URL'
+# ====================================================================
 @st.cache_data(ttl=3600)  # Cache por 1 hora
 def get_standings(league_id, season):
     url = f"{BASE_URL}/standings"
@@ -112,9 +118,11 @@ def get_standings(league_id, season):
             return pd.DataFrame()
         
         table = standings[0].get("league", {}).get("standings", [[]])[0]
+        
         df = pd.DataFrame([{
             "Posição": t.get("rank"),
             "Time": t.get("team", {}).get("name"),
+            "Logo URL": t.get("team", {}).get("logo"),  # <--- NOVA LINHA ADICIONADA
             "Pontos": t.get("points"),
             "Jogos": t.get("all", {}).get("played"),
             "Vitórias": t.get("all", {}).get("win"),
@@ -123,9 +131,11 @@ def get_standings(league_id, season):
             "Gols Pró": t.get("all", {}).get("goals", {}).get("for"),
             "Gols Contra": t.get("all", {}).get("goals", {}).get("against"),
         } for t in table])
+        
         return df
     except requests.exceptions.RequestException:
         return pd.DataFrame()
+# ====================================================================
 
 @st.cache_data(ttl=3600)  # Cache por 1 hora
 def get_last_matches(team_id, season=None, league_id=None, limit=5):
