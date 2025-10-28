@@ -26,7 +26,7 @@ from football_api import (
 )
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 # ----------------- CACHES E WRAPPERS SEGUROS -----------------
 @st.cache_data(ttl=60)
