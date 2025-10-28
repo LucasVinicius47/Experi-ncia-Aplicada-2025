@@ -24,6 +24,7 @@ from football_api import (
     get_squad_by_team,
     get_player_stats,
 )
+from utills import normalize_standings_df, safe_get_standings, safe_get_standings_by_side
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -575,7 +576,7 @@ def display_styled_table(df, mandante, visitante, title="Classificação"):
         tabela_html['Time_Puro'] = tabela_html['Time'] 
         if 'Posição' in tabela_html.columns:
             tabela_html['Posicao_Pura'] = tabela_html['Posição']
-            tabela_html = tabela_html.drop(columns=['Posição']) # Remove a coluna original para usar o balão
+            tabela_html = tabela_html.drop(columns=['Posição']) # Removes the original column to use the balloon
         else:
             # Caso a API não retorne a coluna 'Posição' (como no caso de Casa/Fora)
             tabela_html['Posicao_Pura'] = tabela_html.index + 1
