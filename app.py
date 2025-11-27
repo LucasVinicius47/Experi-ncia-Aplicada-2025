@@ -26,7 +26,7 @@ from football_api import (
 )
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 # ----------------- CACHES E WRAPPERS SEGUROS -----------------
 @st.cache_data(ttl=60)
@@ -261,7 +261,6 @@ def create_comparison_chart(stats_df, mandante, visitante, list_of_stats, title)
         # Remove o '%' se existir para a conversão numérica
         df_plot[col] = df_plot[col].astype(str).str.replace('%', '', regex=False)
         df_plot[col] = pd.to_numeric(df_plot[col], errors='coerce')
-        
     df_plot.dropna(subset=['Mandante_Valor', 'Visitante_Valor'], how='all', inplace=True)
 
     if df_plot.empty:
@@ -297,7 +296,7 @@ def create_comparison_chart(stats_df, mandante, visitante, list_of_stats, title)
             color='Time',
             orientation='h',
             # CORES ESTILIZADAS: Mandante (Vermelho) e Visitante (Branco)
-            color_discrete_map={mandante: '#EF5350', visitante: 'white'}, 
+            color_discrete_map={mandante: '#EF5350', visitante: '#3a6d9e'}, 
             text_auto=False,
             # Altura por item: 70 pixels. 
             height=df_plot.shape[0] * 70 + 100 
@@ -341,7 +340,7 @@ def create_comparison_chart(stats_df, mandante, visitante, list_of_stats, title)
         legend_title_text='Time',
         title_text=f'Comparativo de Estatísticas: {title}', 
         plot_bgcolor='rgba(0,0,0,0)', 
-        paper_bgcolor='#0e1117',
+        paper_bgcolor='#171c24',
         font_color='white'
     )
     
@@ -667,8 +666,49 @@ if 'logged_in' not in st.session_state:
     
 if st.session_state['logged_in']: # MOCK DE LOGIN
     
-    st.set_page_config(page_title="⚽ Dash Gol", layout="wide")
-    st.title("⚽ Dash Gol")
+    st.set_page_config(
+    page_title="Dash Gol",
+    page_icon="https://i.imgur.com/xkMmg57.png",
+    layout="wide"
+)
+
+    # p/ o background da pagina
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background-color: #171C24;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    #pra remover barra e rodapé do navegador
+    st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+
+    st.markdown(
+    f"""
+    <div style="text-align: center; margin-top: -20px;">
+        <img src="https://i.imgur.com/xkMmg57.png" 
+             width="90" 
+             style="vertical-align: middle; margin-right: 2px;">
+        <span style="font-size: 42px; font-weight: 600; color: white; vertical-align: middle;">
+            Dash Gol
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
     
     # Adiciona o botão de Sair (se estiver usando login)
     if st.sidebar.button("Sair", key="logout_btn"):
@@ -679,7 +719,7 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
     st.sidebar.success(f"Logado como: {st.session_state.get('user_email', 'Usuário Mock')}") 
     
     # Sidebar
-    st.sidebar.header("📌 Filtros")
+    st.sidebar.header("≣ Filtros")
     
     # Slider para o Autorefresh
     refresh_interval = st.sidebar.slider("⏱ Atualizar a cada (segundos)", 15, 120, 30)
@@ -721,107 +761,244 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
     id_mandante = partida["teams"]["home"]["id"]
     id_visitante = partida["teams"]["away"]["id"]
 
+
+    #linha acima do plcar
+    st.markdown(
+    """
+    <div style="width:100%; border-bottom: 2px solid #1E2430; margin: 20px 0;"></div>
+    """,
+    unsafe_allow_html=True
+)
+
+
     # CRONÔMETRO E STATUS
     fixture_status = partida['fixture']['status']
     match_status_text = get_translated_status_and_time(fixture_status)
 
-    # Cabeçalho da Partida
-    st.header(f"🏟 {mandante} x {visitante}")
     
     col1, col2, col3 = st.columns([2, 1, 2])
     with col1:
-        st.image(partida["teams"]["home"]["logo"], width=60)
-        st.caption(mandante)
+        st.markdown(
+        f"""
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+        ">
+            <img src="{partida['teams']['home']['logo']}" width="70">
+            <span style="font-size: 35px; color: #e5e7eb; font-weight: 500;">
+                {mandante}
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     with col2:
-        st.markdown(f"⌚ {match_status_text}")
-        st.markdown(f"### {partida['goals']['home']} - {partida['goals']['away']}")
+       # placar centralizado
+        st.markdown(
+        f"<p style='text-align:center; font-size:38px; font-weight:700; color:#f9fafc; margin:0;'>"
+        f"{partida['goals']['home']} - {partida['goals']['away']}"
+        f"</p>",
+        unsafe_allow_html=True
+    )
+
+    # status da partida
+        st.markdown(
+        f"<p style='text-align:center; color:#9ca3af; font-size:14px; margin-top:2px;'>"
+        f"⏱  {match_status_text}"
+        f"</p>",
+        unsafe_allow_html=True
+    )
     with col3:
-        st.image(partida["teams"]["away"]["logo"], width=60)
-        st.caption(visitante)
+        st.markdown(
+        f"""
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        ">
+            <span style="font-size: 35px; color: #e5e7eb; font-weight: 500;">
+                {visitante}
+            </span>
+            <img src="{partida['teams']['away']['logo']}" width="70">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+        
 
-    # Últimos 5 Jogos
-    with st.expander("⚽ Últimos 5 Jogos"):
-        col1, col2 = st.columns(2)
+    #linha abaixo do placar
+    st.markdown(
+    """
+    <div style="width:100%; border-bottom: 2px solid #1E2430; margin: 20px 0;"></div>
+    """,
+    unsafe_allow_html=True
+)
 
-        def exibir_jogos_simples(jogos, nome_time, col):
-            with col:
-                st.subheader(nome_time)
-                if jogos:
-                    for jogo in jogos:
-                        st.markdown(f"- {jogo['Data']} vs {jogo['Adversário']} | Placar: {jogo['Placar']} | Resultado: {jogo['Resultado']}")
-                else:
-                    st.info("Nenhum jogo recente encontrado.")
 
-        jogos_mandante_recentes = get_last_matches(id_mandante, limit=5)
-        jogos_visitante_recentes = get_last_matches(id_visitante, limit=5)
-        exibir_jogos_simples(jogos_mandante_recentes, mandante, col1)
-        exibir_jogos_simples(jogos_visitante_recentes, visitante, col2)
+    
+    # parte dos 5 ultimos jogos 
+    
+    st.markdown("### ◈ Últimos 5 Jogos")
 
-    # Histórico completo de 10 jogos
-    def exibir_jogos_com_emoji(jogos, nome_time):
-        if not jogos:
-            st.warning(f"⚠ Nenhum jogo recente encontrado para {nome_time}.")
-            return
-        resultado_emoji = {"W": "✅", "D": "➖", "L": "❌"}
-        for jogo in jogos:
-            emoji = resultado_emoji.get(jogo["Resultado"], "")
-            st.markdown(
-                f"- {jogo['Data']} — {nome_time} vs {jogo['Adversário']} | Placar: {jogo['Placar']} {emoji}"
-            )
+    col_ult1, col_ult2 = st.columns(2)
 
-    st.subheader("📅 Histórico de Últimos Jogos (10 jogos)")
-    jogos_mandante = get_recent_matches_all_seasons(id_mandante, league_id=liga_id, limit=10)
-    jogos_visitante = get_recent_matches_all_seasons(id_visitante, league_id=liga_id, limit=10)
+    def exibir_jogos_simples(jogos, nome_time, col):
+        with col:
+            st.subheader(nome_time)
+            if jogos:
+                for jogo in jogos:
+                    st.markdown(
+                        f"- {jogo['Data']} vs {jogo['Adversário']} | "
+                        f"Placar: {jogo['Placar']} | Resultado: {jogo['Resultado']}"
+                    )
+            else:
+                st.info("Nenhum jogo recente encontrado.")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"{mandante}")
-        exibir_jogos_com_emoji(jogos_mandante, mandante)
-    with col2:
-        st.markdown(f"{visitante}")
-        exibir_jogos_com_emoji(jogos_visitante, visitante)
+    jogos_mandante_recentes = get_last_matches(id_mandante, limit=5)
+    jogos_visitante_recentes = get_last_matches(id_visitante, limit=5)
 
-    # Confrontos Diretos
+    exibir_jogos_simples(jogos_mandante_recentes, mandante, col_ult1)
+    exibir_jogos_simples(jogos_visitante_recentes, visitante, col_ult2)
+
+    #linha de divisao
+    st.markdown(
+    """
+    <div style="width:100%; border-bottom: 2px solid #1E2430; margin: 20px 0;"></div>
+    """,
+    unsafe_allow_html=True
+)
+
+    
+    # funcoes auxiliares dos 10 jogos / confrontos / gráfico
+    
     def exibir_confrontos(confrontos):
         if not confrontos:
             st.info("ℹ Nenhum confronto direto encontrado.")
             return
+
         for c in confrontos:
             st.markdown(
                 f"- {c['Data']} — {c['Mandante']} x {c['Visitante']} | Placar: {c['Placar']}"
             )
 
-    st.subheader("🤝 Confrontos Diretos")
-    confrontos = get_head_to_head(id_mandante, id_visitante, limit=10)
-    exibir_confrontos(confrontos)
+    def exibir_jogos_com_emoji(jogos, nome_time):
+        if not jogos:
+            st.warning(f"⚠ Nenhum jogo recente encontrado para {nome_time}.")
+            return
 
-    # Gráfico de desempenho (Vitórias, Empates, Derrotas)
+        resultado_emoji = {"W": "✅", "D": "➖", "L": "❌"}
+
+        for jogo in jogos:
+            emoji = resultado_emoji.get(jogo["Resultado"], "")
+            st.markdown(
+                f"- {jogo['Data']} — {nome_time} vs {jogo['Adversário']} | "
+                f"Placar: {jogo['Placar']} {emoji}"
+            )
+
     def contar_resultados(jogos):
         v, e, d = 0, 0, 0
         for j in jogos:
-            if j["Resultado"] == "W": v += 1
-            elif j["Resultado"] == "D": e += 1
-            elif j["Resultado"] == "L": d += 1
+            if j["Resultado"] == "W":
+                v += 1
+            elif j["Resultado"] == "D":
+                e += 1
+            elif j["Resultado"] == "L":
+                d += 1
         return v, e, d
 
-    v1, e1, d1 = contar_resultados(jogos_mandante)
-    v2, e2, d2 = contar_resultados(jogos_visitante)
+    # Buscar os 10 últimos jogos (usados no gráfico e no histórico)
+    jogos_mandante = get_recent_matches_all_seasons(
+        id_mandante, league_id=liga_id, limit=10
+    )
+    jogos_visitante = get_recent_matches_all_seasons(
+        id_visitante, league_id=liga_id, limit=10
+    )
 
-    fig = go.Figure(data=[
-        go.Bar(name=mandante, x=["Vitórias", "Empates", "Derrotas"], y=[v1, e1, d1], marker_color='#EF5350'), # Vermelho (Mandante)
-        go.Bar(name=visitante, x=["Vitórias", "Empates", "Derrotas"], y=[v2, e2, d2], marker_color='white') # Branco (Visitante)
-    ])
-    fig.update_layout(title="Desempenho nos últimos jogos", barmode='group', plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='#0e1117', font_color='white')
-    st.plotly_chart(fig, use_container_width=True)
+    # organizando confronto direto e o grafivo de desempenho
+    
+    col_cd, col_graf = st.columns(2)
 
-    # Abas
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Estatísticas", "👕 Escalações", "🏆 Classificação", "👨‍選手 Análise de Jogador"])
+    with col_cd:
+        st.subheader("⟷ Confrontos Diretos")
+        confrontos = get_head_to_head(id_mandante, id_visitante, limit=10)
+        exibir_confrontos(confrontos)
+
+    with col_graf:
+        st.subheader("▦ Desempenho nos últimos jogos")
+
+        v1, e1, d1 = contar_resultados(jogos_mandante)
+        v2, e2, d2 = contar_resultados(jogos_visitante)
+
+        fig = go.Figure(data=[
+            go.Bar(
+                name=mandante,
+                x=["Vitórias", "Empates", "Derrotas"],
+                y=[v1, e1, d1],
+                marker_color="#EF5350"  # Mandante (vermelho)
+            ),
+            go.Bar(
+                name=visitante,
+                x=["Vitórias", "Empates", "Derrotas"],
+                y=[v2, e2, d2],
+                marker_color="#3A6D9E"    # Visitante (branco)
+            ),
+        ])
+
+        fig.update_layout(
+            title="Desempenho nos últimos jogos",
+            barmode="group",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="#171C24",
+            font_color="white",
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # linha de divisao
+    st.markdown(
+    """
+    <div style="width:100%; border-bottom: 2px solid #1E2430; margin: 20px 0;"></div>
+    """,
+    unsafe_allow_html=True
+)
+
+    # historico dos ultimos 10 jogos
+    st.subheader("⟲ Histórico de Últimos Jogos (10 jogos)")
+
+    col_hist1, col_hist2 = st.columns(2)
+
+    with col_hist1:
+        st.markdown(f"{mandante}")
+        exibir_jogos_com_emoji(jogos_mandante, mandante)
+
+    with col_hist2:
+        st.markdown(f"{visitante}")
+        exibir_jogos_com_emoji(jogos_visitante, visitante)
+
+    # linha de divisao
+    st.markdown(
+    """
+    <div style="width:100%; border-bottom: 2px solid #1E2430; margin: 20px 0;"></div>
+    """,
+    unsafe_allow_html=True
+)
+
+    # ==================================================================
+    # CRIAÇÃO DAS ABAS PRINCIPAIS
+    # ==================================================================
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["⬢ Estatísticas", "⌗ Escalações", "◆ Classificação", "✎ Análise de Jogador"]
+    )
+
 
     # ==============================================================================
     # TAB 1: ESTATÍSTICAS
     # ==============================================================================
     with tab1:
-        st.subheader("📊 Estatísticas da Partida")
+        st.subheader("⬢ Estatísticas da Partida")
         
         stats_data = get_match_statistics(fixture_id)
         if stats_data:
@@ -873,7 +1050,7 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
             st.markdown("---") 
 
             # --- PLOTAGEM DO GRÁFICO 2: VOLUME ---
-            st.markdown("### Estatísticas de Volume (Passes)")
+            st.markdown("### ↔ Estatísticas de Volume (Passes)")
             comparison_fig_volume = create_comparison_chart(
                 stats_df, mandante, visitante, 
                 list_of_stats=stats_volume, 
@@ -889,34 +1066,111 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
                 st.info("ℹ Não foi possível gerar os gráficos de comparação. Exibindo tabela de dados brutos.")
                 st.dataframe(stats_df, use_container_width=True)
 
+                # linha de divisao
+    st.markdown(
+    """
+    <div style="width:100%; border-bottom: 2px solid #1E2430; margin: 20px 0;"></div>
+    """,
+    unsafe_allow_html=True
+)
 
-    with tab2:
-        st.subheader("👕 Escalações")
-        lineups = get_match_lineups(fixture_id)
-        if not lineups:
-            st.info("ℹ Escalações não disponíveis.")
+              
+    # -grafico com simulaçao de evolucao do jogo
+    st.subheader("↗ Evolução do Jogo")
+
+    if stats_df is None or stats_df.empty:
+        st.info("ℹ Não há estatísticas suficientes para gerar pressão ofensiva.")
+    else:
+
+        stats_pression = [
+            "Chutes Totais",
+            "Chutes no Gol",
+            "Chutes Dentro da Área",
+            "Escanteios",
+            "Gols Esperados (xG)"
+        ]
+
+        df_pressao = stats_df[stats_df['Estatística'].isin(stats_pression)].copy()
+
+        if df_pressao.empty:
+            st.info("ℹ Não há estatísticas ofensivas disponíveis para este jogo.")
         else:
-            for equipe in lineups:
-                st.markdown(f"{equipe['team']['name']}")
-                titulares = equipe.get("startXI", [])
-                if titulares:
-                    df_titulares = pd.DataFrame([
-                        {
-                            "Nº": j["player"]["number"],
-                            "Jogador": j["player"]["name"],
-                            "Posição": j["player"]["pos"]
-                        }
-                        for j in titulares
-                    ])
-                    st.dataframe(df_titulares, use_container_width=True)
-                else:
-                    st.write("Nenhum titular disponível.")
+
+            # conversao total de numeros pro grafico
+            for col in ["Mandante", "Visitante"]:
+                df_pressao[col] = (
+                    df_pressao[col]
+                    .astype(str)
+                    .str.replace('%', '', regex=False)
+                    .str.replace(',', '.', regex=False)
+                    .str.extract(r'(\d+\.?\d*)')[0]
+                    .astype(float)
+                    .fillna(0)
+                )
+
+            # simulando os valores acomulados
+            df_pressao["Acumulado_Mandante"] = df_pressao["Mandante"].astype(float).cumsum()
+            df_pressao["Acumulado_Visitante"] = df_pressao["Visitante"].astype(float).cumsum()
+
+            # grafico final
+            fig_pressao = go.Figure()
+
+            fig_pressao.add_trace(go.Scatter(
+                x=df_pressao["Estatística"],
+                y=df_pressao["Acumulado_Mandante"],
+                mode='lines+markers',
+                name=mandante,
+                line=dict(color="#EF5350", width=3)
+            ))
+
+            fig_pressao.add_trace(go.Scatter(
+                x=df_pressao["Estatística"],
+                y=df_pressao["Acumulado_Visitante"],
+                mode='lines+markers',
+                name=visitante,
+                line=dict(color="#3A6D9E", width=3)
+            ))
+
+            fig_pressao.update_layout(
+                title="Pressão Ofensiva (Acumulada)",
+                xaxis_title="Indicadores de Ataque",
+                yaxis_title="Pressão Acumulada",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor=" #171C24",
+                font_color="white"
+            )
+
+            st.plotly_chart(fig_pressao, use_container_width=True)
+
+
+
+        with tab2:
+            st.subheader("⌗ Escalações")
+            lineups = get_match_lineups(fixture_id)
+            if not lineups:
+                st.info("ℹ Escalações não disponíveis.")
+            else:
+                for equipe in lineups:
+                    st.markdown(f"{equipe['team']['name']}")
+                    titulares = equipe.get("startXI", [])
+                    if titulares:
+                        df_titulares = pd.DataFrame([
+                            {
+                                "Nº": j["player"]["number"],
+                                "Jogador": j["player"]["name"],
+                                "Posição": j["player"]["pos"]
+                            }
+                            for j in titulares
+                        ])
+                        st.dataframe(df_titulares, use_container_width=True)
+                    else:
+                        st.write("Nenhum titular disponível.")
 
     # ==============================================================================
     # TAB 3: CLASSIFICAÇÃO
     # ==============================================================================
     with tab3:
-        st.subheader("🏆 Classificação da Liga")
+        st.subheader("◆ Classificação da Liga")
         
         # 1. Busca as três tabelas
         tabela_geral = cached_get_standings_safe(liga_id, temporada)
@@ -932,7 +1186,7 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
         tab_geral, tab_home, tab_away = st.tabs(["Geral", "Em Casa", "Fora"])
 
         with tab_geral:
-            st.subheader("Classificação Geral")
+            st.subheader("≣ Classificação Geral")
             
             # Bloco de código ORIGINAL para Tabela GERAL (com a coluna FORMA)
             if tabela_geral is None or tabela_geral.empty: 
@@ -1028,37 +1282,37 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
                     
                     # Legendas da Classificação
                     st.markdown("---")
-                    st.markdown("### 🎨 Legenda da Classificação")
+                    st.markdown("### ◔ Legenda da Classificação")
                     
                     col_legenda1, col_legenda2, col_legenda3, col_legenda4 = st.columns(4)
                     
                     with col_legenda1:
                         st.markdown(
-                            "<div style='padding: 5px; background-color: #66BB6A; color: black; border-radius: 5px; font-size: 14px;'>🏆 1º ao 4º: Libertadores (Grupos)</div>", 
+                            "<div style='padding: 5px; background-color: #14532d; color: white; border-radius: 5px; font-size: 14px;'>🏆 1º ao 4º: Libertadores (Grupos)</div>", 
                             unsafe_allow_html=True
                         )
                     
                     with col_legenda2:
                         st.markdown(
-                            "<div style='padding: 5px; background-color: #007BFF; color: white; border-radius: 5px; font-size: 14px;'>🟦 5º ao 6º: Libertadores (Qualif.)</div>", 
+                            "<div style='padding: 5px; background-color: #1e3a8a; color: white; border-radius: 5px; font-size: 14px;'>🟦 5º ao 6º: Libertadores (Qualif.)</div>", 
                             unsafe_allow_html=True
                         )
                         
                     with col_legenda3:
                         st.markdown(
-                            "<div style='padding: 5px; background-color: #00BFFF; color: black; border-radius: 5px; font-size: 14px;'>🏅 7º ao 12º: Sul-Americana</div>", 
+                            "<div style='padding: 5px; background-color: #155e75; color: white; border-radius: 5px; font-size: 14px;'>🏅 7º ao 12º: Sul-Americana</div>", 
                             unsafe_allow_html=True
                         )
                         
                     with col_legenda4:
                         st.markdown(
-                            "<div style='padding: 5px; background-color: #EF5350; color: white; border-radius: 5px; font-size: 14px;'>🔻 17º em diante: Rebaixamento</div>", 
+                            "<div style='padding: 5px; background-color: #7f1d1d; color: white; border-radius: 5px; font-size: 14px;'>🔻 17º em diante: Rebaixamento</div>", 
                             unsafe_allow_html=True
                         )
                         
                     # LEGENDA DO DESTAQUE: AZUL ESCURO
                     st.markdown(
-                        "<div style='width: 25%; margin-top: 10px; padding: 5px; background-color: #1E90FF; color: white; border-radius: 5px; font-size: 14px;'>⚽ Destaque: Time da Partida</div>", 
+                        "<div style='width: 25%; margin-top: 10px; padding: 5px; background-color: #1f2937; color: white; border-radius: 5px; font-size: 14px;'>⚽ Destaque: Time da Partida</div>", 
                         unsafe_allow_html=True
                     )
 
@@ -1084,7 +1338,7 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
     # ==============================================================================
 
     with tab4:
-        st.subheader("👨‍選手 Análise de Jogador")
+        st.subheader("✎ Análise de Jogador")
         
         # 1. Seleciona o time
         try:
