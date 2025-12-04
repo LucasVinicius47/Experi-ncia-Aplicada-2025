@@ -1096,7 +1096,7 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
             st.info("ℹ Não há estatísticas ofensivas disponíveis para este jogo.")
         else:
 
-            # conversao total de numeros pro grafico
+            # conversão para número (igual ao gráfico de estatísticas)
             for col in ["Mandante", "Visitante"]:
                 df_pressao[col] = (
                     df_pressao[col]
@@ -1104,15 +1104,14 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
                     .str.replace('%', '', regex=False)
                     .str.replace(',', '.', regex=False)
                     .str.extract(r'(\d+\.?\d*)')[0]
-                    .astype(float)
-                    .fillna(0)
                 )
+                df_pressao[col] = pd.to_numeric(df_pressao[col], errors="coerce").fillna(0)
 
-            # simulando os valores acomulados
-            df_pressao["Acumulado_Mandante"] = df_pressao["Mandante"].astype(float).cumsum()
-            df_pressao["Acumulado_Visitante"] = df_pressao["Visitante"].astype(float).cumsum()
+            # usa os valores reais (sem acumular)
+            df_pressao["Acumulado_Mandante"] = df_pressao["Mandante"].astype(float)
+            df_pressao["Acumulado_Visitante"] = df_pressao["Visitante"].astype(float)
 
-            # grafico final
+            # gráfico final (valores reais)
             fig_pressao = go.Figure()
 
             fig_pressao.add_trace(go.Scatter(
@@ -1132,15 +1131,16 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
             ))
 
             fig_pressao.update_layout(
-                title="Pressão Ofensiva (Acumulada)",
+                title="Pressão Ofensiva",
                 xaxis_title="Indicadores de Ataque",
-                yaxis_title="Pressão Acumulada",
+                yaxis_title="Valor",
                 plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor=" #171C24",
+                paper_bgcolor="#171C24",
                 font_color="white"
             )
 
             st.plotly_chart(fig_pressao, use_container_width=True)
+
 
 
 
