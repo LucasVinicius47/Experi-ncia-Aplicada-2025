@@ -8,7 +8,33 @@ import re
 import logging
 from typing import Any, Optional
 
-# NOTE: Certifique-se de que o arquivo 'football_api.py' existe e está no mesmo diretório.
+# Exemplo de como usar no seu arquivo principal (app.py)
+
+import streamlit as st
+from auth_app import require_login_and_render_ui
+from firebase_utils import logout_user # Importe a função de logout
+
+st.set_page_config(layout="wide", page_title="Dash Gol")
+
+if require_login_and_render_ui():
+    
+    # === HEADER DO DASHBOARD ===
+    col_user, col_logout = st.columns([10, 1])
+    
+    with col_user:
+        st.write(f"Bem-vindo(a), **{st.session_state['user_email']}**")
+
+    with col_logout:
+        # 🚪 Botão de Logout que limpa a sessão e recarrega
+        st.button("Sair 🚪", on_click=logout_user, type="secondary")
+
+    st.divider()
+
+    ## 📊 CONTEÚDO PRINCIPAL DO DASHBOARD (AQUI ENTRA O CÓDIGO DO SEU DASHBOARD)
+    st.success("Acesso liberado! O seu dashboard está aqui.")
+    # ... resto do código do dashboard ...
+
+# NOTA: Certifique-se de que o arquivo 'football_api.py' existe e está no mesmo diretório.
 # O código assume que as funções de API estão em 'football_api.py'
 from football_api import (
     get_leagues,
@@ -28,7 +54,9 @@ from football_api import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ----------------- CACHES E WRAPPERS SEGUROS -----------------
+# --- CONFIGURAÇÃO GLOBAL ---
+LOGO_URL = "https://i.imgur.com/xkMmg57.png" 
+# ----------------- CACHES E WRAPPERS SEGUROS (MANTIDO) -----------------
 @st.cache_data(ttl=60)
 def cached_get_leagues():
     try:
@@ -37,47 +65,7 @@ def cached_get_leagues():
         logger.exception("Erro em get_leagues")
         return []
 
-@st.cache_data(ttl=60)
-def cached_get_standings_safe(*args, **kwargs):
-    """
-    Tenta chamar get_standings com assinatura de 1 ou 2 argumentos.
-    Retorna DataFrame-like (lista/dict) ou None.
-    """
-    try:
-        return get_standings(*args, **kwargs)
-    except TypeError:
-        try:
-            # fallback para versões que aceitam apenas liga_id
-            if len(args) >= 1:
-                return get_standings(args[0])
-            # talvez temporada seja passada como kwarg diferente
-            if 'league_id' in kwargs:
-                return get_standings(kwargs['league_id'])
-        except Exception:
-            logger.exception("Falha no fallback de get_standings")
-            return None
-    except Exception:
-        logger.exception("Erro inesperado em get_standings")
-        return None
-
-@st.cache_data(ttl=60)
-def cached_get_standings_by_side_safe(*args, **kwargs):
-    try:
-        return get_standings_by_side(*args, **kwargs)
-    except TypeError:
-        try:
-            # tenta chamadas alternativas comuns
-            if len(args) >= 2:
-                # (liga_id, temporada, side=...)
-                return get_standings_by_side(args[0], args[1])
-            if len(args) >= 1:
-                return get_standings_by_side(args[0])
-        except Exception:
-            logger.exception("Falha no fallback de get_standings_by_side")
-            return None
-    except Exception:
-        logger.exception("Erro inesperado em get_standings_by_side")
-        return None
+# ... (outras funções cached_get_standings_safe, cached_get_standings_by_side_safe, normalize_standings_df, get_translated_status_and_time, create_comparison_chart, format_position_column_html, format_team_column_html, format_form_column_html, highlight_match_teams_styler_final, display_styled_table) ...
 
 # ----------------- NORMALIZAÇÃO DA TABELA -----------------
 def normalize_standings_df(df: Any) -> Optional[Any]:
@@ -233,6 +221,50 @@ def get_translated_status_and_time(fixture_status):
         display_text = translated_status
 
     return display_text
+    
+# ----------------- CACHES E WRAPPERS SEGUROS -----------------
+@st.cache_data(ttl=60)
+def cached_get_standings_safe(*args, **kwargs):
+    """
+    Tenta chamar get_standings com assinatura de 1 ou 2 argumentos.
+    Retorna DataFrame-like (lista/dict) ou None.
+    """
+    try:
+        return get_standings(*args, **kwargs)
+    except TypeError:
+        try:
+            # fallback para versões que aceitam apenas liga_id
+            if len(args) >= 1:
+                return get_standings(args[0])
+            # talvez temporada seja passada como kwarg diferente
+            if 'league_id' in kwargs:
+                return get_standings(kwargs['league_id'])
+        except Exception:
+            logger.exception("Falha no fallback de get_standings")
+            return None
+    except Exception:
+        logger.exception("Erro inesperado em get_standings")
+        return None
+
+@st.cache_data(ttl=60)
+def cached_get_standings_by_side_safe(*args, **kwargs):
+    try:
+        return get_standings_by_side(*args, **kwargs)
+    except TypeError:
+        try:
+            # tenta chamadas alternativas comuns
+            if len(args) >= 2:
+                # (liga_id, temporada, side=...)
+                return get_standings_by_side(args[0], args[1])
+            if len(args) >= 1:
+                return get_standings_by_side(args[0])
+        except Exception:
+            logger.exception("Falha no fallback de get_standings_by_side")
+            return None
+    except Exception:
+        logger.exception("Erro inesperado em get_standings_by_side")
+        return None
+
 
 # =================================================================
 # === FUNÇÃO DE VISUALIZAÇÃO DE DADOS (GRÁFICO ESTILO FINAL) ===
@@ -656,21 +688,177 @@ def display_styled_table(df, mandante, visitante, title="Classificação"):
 
 
 # =================================================================
+# === FUNÇÕES DE AUTENTICAÇÃO ===
+# =================================================================
+
+def setup_auth_page_config(logo_url):
+    """Configura o layout centralizado e esconde elementos do Streamlit."""
+    st.set_page_config(
+        page_title="Dash Gol - Auth",
+        page_icon=logo_url,
+        layout="centered"
+    )
+    st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stApp {
+        background-color: #171C24;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Colunas para centralizar o formulário
+    col1, col2, col3 = st.columns([1, 2, 1])
+    return col2
+
+def display_auth_header(col2, logo_url, title, subtitle):
+    """Exibe o cabeçalho da página (Logo e Título)."""
+    with col2:
+        st.markdown(
+            f"""
+            <div style="text-align: center; margin-top: 50px; margin-bottom: 30px;">
+                <img src="{logo_url}" width="120" style="margin-bottom: 10px;">
+                <h1 style="color: white; font-size: 36px;">Dash Gol</h1>
+                <p style="color: #9ca3af;">{subtitle}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+# -------------------------------------------------------------
+# 1. Tela de Login (EXISTENTE - MODIFICADA)
+# -------------------------------------------------------------
+def login_page(logo_url):
+    """Interface de login com links para outras telas."""
+    col2 = setup_auth_page_config(logo_url)
+    display_auth_header(col2, logo_url, "Dash Gol", "Acesse para ver as estatísticas da partida")
+    
+    with col2: 
+        with st.form("login_form"):
+            st.markdown("<h3 style='color: white;'>Fazer Login</h3>", unsafe_allow_html=True)
+            
+            email = st.text_input("E-mail", key="email_input")
+            password = st.text_input("Senha", type="password", key="password_input")
+            
+            submitted = st.form_submit_button("Entrar", use_container_width=True)
+
+            if submitted:
+                # --- LÓGICA DE AUTENTICAÇÃO MOCK (Trocar por API real) ---
+                if email == "teste@teste.com" and password == "1234":
+                    st.session_state['logged_in'] = True
+                    st.session_state['user_email'] = email
+                    st.session_state['mode'] = 'dashboard' 
+                    st.rerun() 
+                else:
+                    st.error("Credenciais inválidas. Tente 'teste@teste.com' e '1234'.")
+    
+        # --- LINKS DE NAVEGAÇÃO ---
+        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+        col_links = st.columns(2)
+        with col_links[0]:
+            if st.button("Criar Conta", key="link_create_account", use_container_width=True):
+                st.session_state['mode'] = 'create_account'
+                st.rerun()
+        with col_links[1]:
+            if st.button("Esqueci Minha Senha", key="link_forgot_password", use_container_width=True):
+                st.session_state['mode'] = 'forgot_password'
+                st.rerun()
+
+# -------------------------------------------------------------
+# 2. Tela de Criar Conta (NOVA)
+# -------------------------------------------------------------
+def create_account_page(logo_url):
+    """Interface de criação de nova conta (Mock)."""
+    col2 = setup_auth_page_config(logo_url)
+    display_auth_header(col2, logo_url, "Criar Conta", "Cadastre-se para acessar todas as estatísticas")
+    
+    with col2:
+        with st.form("create_account_form"):
+            st.markdown("<h3 style='color: white;'>Criar Nova Conta</h3>", unsafe_allow_html=True)
+            
+            name = st.text_input("Nome Completo")
+            email = st.text_input("E-mail")
+            password = st.text_input("Senha", type="password")
+            confirm_password = st.text_input("Confirmar Senha", type="password")
+            
+            submitted = st.form_submit_button("Cadastrar", use_container_width=True)
+            
+            if submitted:
+                if not name or not email or not password or not confirm_password:
+                    st.error("Todos os campos são obrigatórios.")
+                elif password != confirm_password:
+                    st.error("A senha e a confirmação de senha não coincidem.")
+                elif len(password) < 6:
+                    st.error("A senha deve ter pelo menos 6 caracteres.")
+                else:
+                    # Mock registration success
+                    st.success("✅ Cadastro realizado com sucesso! Use suas credenciais para fazer login.")
+                    st.session_state['mode'] = 'login'
+                    st.rerun()
+
+        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+        if st.button("← Voltar ao Login", key="back_to_login_ca", use_container_width=True):
+            st.session_state['mode'] = 'login'
+            st.rerun()
+
+# -------------------------------------------------------------
+# 3. Tela de Esqueceu Senha (NOVA)
+# -------------------------------------------------------------
+def forgot_password_page(logo_url):
+    """Interface de recuperação de senha (Mock)."""
+    col2 = setup_auth_page_config(logo_url)
+    display_auth_header(col2, logo_url, "Recuperar Senha", "Informe seu e-mail para receber as instruções")
+
+    with col2:
+        with st.form("forgot_password_form"):
+            st.markdown("<h3 style='color: white;'>Recuperar Senha</h3>", unsafe_allow_html=True)
+            
+            email = st.text_input("E-mail Cadastrado")
+            
+            submitted = st.form_submit_button("Enviar E-mail de Recuperação", use_container_width=True)
+            
+            if submitted:
+                if not email:
+                    st.error("Por favor, insira seu e-mail cadastrado.")
+                else:
+                    # Mock recovery success
+                    st.success(f"📧 Se o e-mail '{email}' estiver cadastrado, as instruções para redefinição de senha foram enviadas.")
+                    st.session_state['mode'] = 'login'
+                    st.rerun()
+
+        st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+        if st.button("← Voltar ao Login", key="back_to_login_fp", use_container_width=True):
+            st.session_state['mode'] = 'login'
+            st.rerun()
+
+
+# =================================================================
 # === BLOCO DE PROTEÇÃO DO DASHBOARD (INÍCIO DA UI) ===
 # =================================================================
 
-# --- MOCK DE AUTENTICAÇÃO ---
+# Inicializa o estado de sessão, se necessário
 if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = True
-    st.session_state['user_email'] = 'teste@teste.com'
+    st.session_state['logged_in'] = False
+if 'mode' not in st.session_state:
+    st.session_state['mode'] = 'login'
+if 'user_email' not in st.session_state:
+    st.session_state['user_email'] = 'Usuário Mock'
+
+
+# --- LÓGICA DE CONTROLE DE TELA PRINCIPAL ---
+if st.session_state['logged_in']: 
     
-if st.session_state['logged_in']: # MOCK DE LOGIN
+    # ------------------------------------------------------------------
+    # --- CONFIGURAÇÃO E CÓDIGO DO DASHBOARD (A PARTIR DAQUI) ---
+    # ------------------------------------------------------------------
     
     st.set_page_config(
-    page_title="Dash Gol",
-    page_icon="https://i.imgur.com/xkMmg57.png",
-    layout="wide"
-)
+        page_title="Dash Gol",
+        page_icon=LOGO_URL,
+        layout="wide"
+    )
 
     # p/ o background da pagina
     st.markdown(
@@ -698,7 +886,7 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
     st.markdown(
     f"""
     <div style="text-align: center; margin-top: -20px;">
-        <img src="https://i.imgur.com/xkMmg57.png" 
+        <img src="{LOGO_URL}" 
              width="90" 
              style="vertical-align: middle; margin-right: 2px;">
         <span style="font-size: 42px; font-weight: 600; color: white; vertical-align: middle;">
@@ -904,9 +1092,9 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
             if j["Resultado"] == "W":
                 v += 1
             elif j["Resultado"] == "D":
-                e += 1
-            elif j["Resultado"] == "L":
                 d += 1
+            elif j["Resultado"] == "L":
+                e += 1
         return v, e, d
 
     # Buscar os 10 últimos jogos (usados no gráfico e no histórico)
@@ -1465,3 +1653,15 @@ if st.session_state['logged_in']: # MOCK DE LOGIN
                         
                     except Exception as e:
                         st.error(f"Erro ao buscar estatísticas do jogador: {e}")
+
+
+# --- NOVA LÓGICA DE NAVEGAÇÃO ENTRE TELAS DE AUTENTICAÇÃO ---
+
+elif st.session_state['mode'] == 'create_account':
+    create_account_page(LOGO_URL)
+
+elif st.session_state['mode'] == 'forgot_password':
+    forgot_password_page(LOGO_URL)
+    
+elif st.session_state['mode'] == 'login' and not st.session_state['logged_in']:
+    login_page(LOGO_URL)

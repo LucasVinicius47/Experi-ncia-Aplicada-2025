@@ -71,3 +71,19 @@ def send_password_reset(email):
         return True, "Email de recuperação enviado. Verifique sua caixa de entrada."
     except Exception as e:
         return False, "Erro: Email não encontrado ou não cadastrado."
+    
+# firebase_utils.py (Adicionar no final do arquivo)
+
+def logout_user():
+    """Limpa as variáveis de sessão de autenticação do Streamlit."""
+    # O pyrebase não tem um método "logout", o logout é feito limpando a sessão local.
+    if 'logged_in' in st.session_state:
+        del st.session_state['logged_in']
+    if 'user_email' in st.session_state:
+        del st.session_state['user_email']
+    if 'id_token' in st.session_state:
+        del st.session_state['id_token']
+    
+    # Redireciona para o modo de login para exibir a tela de autenticação
+    st.session_state['mode'] = 'login' 
+    st.rerun()    
